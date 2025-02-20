@@ -14,19 +14,18 @@ namespace UserService
     public interface IUserService
     {
         [OperationContract]
-        List<User> GetAllUsers();
         Task<List<User>> GetAllUsersAsync();
 
         [OperationContract]
-        User GetUser(int id);
-        
+        Task<User> GetUserAsync(int id);
+
         [OperationContract]
-        void AddUser(User user);
-        
+        Task AddUserAsync(User user);
+
         [OperationContract]
-        void UpdateUser(User user);
-        
+        Task UpdateUserAsync(User user);
+
         [OperationContract]
-        void DeleteUser(int id);
+        Task DeleteUserAsync(int id);
     }
 }

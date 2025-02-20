@@ -18,42 +18,37 @@ namespace UserService
             new User{Id = 2, Name = "Lan" }
         };
 
-        public void DeleteUser(int id)
+        public async Task<List<User>> GetAllUsersAsync()
         {
-            var user = _users.FirstOrDefault(x => x.Id == id);
-            if (user != null)
-            { 
-                _users.Remove(user); 
-            }
-        }
-
-        void IUserService.AddUser(User user)
-        {
-            user.Id = _users.Any() ? _users.Max(x => x.Id) + 1 : 1;
-        }
-
-        List<User> IUserService.GetAllUsers()
-        {
+            await Task.Delay(100); // Giả lập công việc bất đồng bộ
             return _users;
         }
 
-        Task<List<User>> IUserService.GetAllUsersAsync()
+        public async Task<User> GetUserAsync(int id)
         {
-            return Task.FromResult(_users);
+            await Task.Delay(100);
+            return _users.FirstOrDefault(u => u.Id == id);
         }
 
-        User IUserService.GetUser(int id)
+        public async Task AddUserAsync(User user)
         {
-            return _users.FirstOrDefault(_x => _x.Id == id);
+            await Task.Delay(100);
+            user.Id = _users.Any() ? _users.Max(u => u.Id) + 1 : 1;
+            _users.Add(user);
         }
 
-        void IUserService.UpdateUser(User user)
+        public async Task UpdateUserAsync(User user)
         {
-            var existingUser = _users.FirstOrDefault(x => x.Id == user.Id);
-            if (existingUser != null)
-            {
-                existingUser.Name = user.Name;
-            }
+            await Task.Delay(100);
+            var existing = _users.FirstOrDefault(u => u.Id == user.Id);
+            if (existing != null) existing.Name = user.Name;
+        }
+
+        public async Task DeleteUserAsync(int id)
+        {
+            await Task.Delay(100);
+            var user = _users.FirstOrDefault(u => u.Id == id);
+            if (user != null) _users.Remove(user);
         }
     }
 }

@@ -28,11 +28,10 @@ namespace UserClient
         }
 
         public ObservableCollection<User> Users { get; set; }
+
         public UserViewModel()
         {
             _userService = new UserServiceClient();
-            Users = new ObservableCollection<User>(_userService.GetAllUsers());
-
             AddCommand = new ReplayCommand(AddUser);
             UpdateCommand = new ReplayCommand(UpdateUser);
             DeleteCommand = new ReplayCommand(DeleteUser);
@@ -43,6 +42,44 @@ namespace UserClient
         public ICommand UpdateCommand   { get; }
         public ICommand DeleteCommand   { get; }        
 
+        // we cannot call async Task in constructor, so we have to modify the window app form to call it in the Loaded event
+        // other solution is use the async void and call it in the constructor but we will not manage the time when the function is finished.
+        // it can raise error or UI updating not correctly
+        // another is using a third party framework like Prism or MVVM Light which support async constructor
+        /// <summary>
+        /// Initializes the view model asynchronously by loading user data
+        /// This method is called from the WPF windows's Loaded event to ensure proper async/await handling
+        /// </summary>
+        /// <remarks>
+        /// <para>
+        /// We cannot directly call asynchronous methods (returning <see cref="Task"/>) in a constructor because constructors
+        /// must return <c>void</c> and cannot use <c>await</c>. Therefore, this method is designed to be invoked from 
+        /// the <c>Loaded</c> event of the MainWindow to handle asynchronous operations correctly.
+        /// </para>
+        /// <para>
+        /// Alternative approaches include:
+        /// <list type="bullet">
+        /// <item>
+        /// <description>
+        /// Using <c>async void</c> in the constructor to call <c>LoadUserAsync</c> directly. However, this approach
+        /// has drawbacks: it does not allow tracking when the asynchronous operation completes, can swallow exceptions
+        /// and may lead to UI updates occurring incorrectly or unpredictably.
+        /// </description>
+        /// </item>
+        /// <item>
+        /// <description>
+        /// Leveraging third-party MVVM frameworks like Prism or MVVM Light, which provide built-in support for asynchronous initialization or constructor-like
+        /// behavior. This require additional dependencies but simplifies async handling.
+        /// </description>
+        /// </item>
+        /// </list>
+        /// </para>
+        /// </remarks>
+        /// <returns></returns>
+        public async Task InitializeAsync()
+        {
+            await LoadUsersAsync();
+        }
         private void AddUser()
         {
             var newUser = new User() { Name = "New User"};
@@ -50,21 +87,28 @@ namespace UserClient
             Users.Add(newUser);
         }
 
-        private void UpdateUser()
+        private async Task LoadUsersAsync()
+        {
+            var users = await _userService.GetAllUsersAsync();
+            Users = new ObservableCollection<User>(users);
+            OnPropertyChanged(nameof(Users));
+        }
+
+        private async void UpdateUser()
         {
             if (SelectedUser != null)
             {
-                _userService.UpdateUser(SelectedUser);
-                Users = new ObservableCollection<User>(_userService.GetAllUsers());
+                await _userService.UpdateUserAsync(SelectedUser);
+                Users = new ObservableCollection<User>(await _userService.GetAllUsersAsync());
                 OnPropertyChanged(nameof(Users));
             }
         }
 
-        private void DeleteUser()
+        private async void DeleteUser()
         {
             if (SelectedUser != null)
             {
-                _userService.DeleteUser(SelectedUser.Id);
+                await _userService.DeleteUserAsync(SelectedUser.Id);
                 Users.Remove(SelectedUser);
             }
         }
