@@ -23,6 +23,7 @@ namespace UserClient
         public MainWindow()
         {
             InitializeComponent();
+            DataContext = new UserViewModel();
         }
     }
 }
