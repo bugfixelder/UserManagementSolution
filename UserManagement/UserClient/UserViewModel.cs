@@ -32,9 +32,9 @@ namespace UserClient
         public UserViewModel()
         {
             _userService = new UserServiceClient();
-            AddCommand = new ReplayCommand(AddUser);
-            UpdateCommand = new ReplayCommand(UpdateUser);
-            DeleteCommand = new ReplayCommand(DeleteUser);
+            AddCommand = new RelayCommand(AddUser);
+            UpdateCommand = new RelayCommand(UpdateUser);
+            DeleteCommand = new RelayCommand(DeleteUser);
         }
 
 
@@ -119,10 +119,10 @@ namespace UserClient
         }
     }
 
-    public class ReplayCommand : ICommand
+    public class RelayCommand : ICommand
     {
         private readonly Action _execute;
-        public ReplayCommand(Action execute)  => _execute = execute;
+        public RelayCommand(Action execute)  => _execute = execute;
         public event EventHandler CanExecuteChanged;
         public bool CanExecute(object parameter) => true;
         public void Execute(object parameter) => _execute();
