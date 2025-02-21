@@ -24,14 +24,36 @@ namespace UserService
             _timer = new Timer(TimerCallback, null, 0, 10000);
         }
 
-        private static void TimerCallback(object state)
+        private static async void TimerCallback(object state)
         {
             var randomStatus = (UserStatus)new Random().Next(0, 2);
             Console.WriteLine($"Callback invoking: new status = {randomStatus}");
-            Task.Factory.StartNew(() =>
+
+            if (_callback != null)
             {
-                _callback?.OnUserStatusChanged(randomStatus);
-            });
+                var communicationObject = _callback as ICommunicationObject;
+                if (communicationObject != null && communicationObject.State == CommunicationState.Opened)
+                {
+                    try
+                    {
+                        await _callback.OnUserStatusChanged(randomStatus);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"Error in callback: {ex.Message}");
+                        _callback = null; // Delete callback to prevent call next time
+                    }
+                }
+                else
+                {
+                    Console.WriteLine("Callback channel is not open or has faulted");
+                    _callback = null;
+                }
+            }
+            else
+            {
+                Console.WriteLine("Callback is null, no active connection");
+            }
 
             Console.WriteLine($"TimerCallback END");
         }

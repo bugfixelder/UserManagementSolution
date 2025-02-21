@@ -20,7 +20,7 @@ namespace UserService
     public interface IUserCallback
     {
         [OperationContract(IsOneWay = true)]
-        void OnUserStatusChanged(UserStatus status);
+        Task OnUserStatusChanged(UserStatus status);
     }
     
     [ServiceContract(CallbackContract = typeof(IUserCallback))]
