@@ -28,6 +28,14 @@
             <Button Content="Add" Command="{Binding AddCommand}" Width="100" Margin="0,0,0,10"/>
             <Button Content="Update" Command="{Binding UpdateCommand}" Width="100" Margin="0,0,0,10"/>
             <Button Content="Delete" Command="{Binding DeleteCommand}" Width="100"/>
+            <TextBlock Text="Logs" FontWeight="Bold" Margin="0,0,0,10"/>
+            <TextBox Text="{Binding LogText, UpdateSourceTrigger=PropertyChanged}"
+                     Width="200"
+                     Height="214"
+                     Margin="0,0,0,10"
+                     AcceptsReturn="True"
+                     TextWrapping="Wrap"
+                     IsReadOnly="True" />
         </StackPanel>
     </Grid>
 </Window>

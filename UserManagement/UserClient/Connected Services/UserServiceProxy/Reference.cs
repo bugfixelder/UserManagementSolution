@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace UserClient.ServiceReference1 {
+namespace UserClient.UserServiceProxy {
     using System.Runtime.Serialization;
     using System;
     
@@ -74,97 +74,125 @@ namespace UserClient.ServiceReference1 {
         }
     }
     
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.Runtime.Serialization", "4.0.0.0")]
+    [System.Runtime.Serialization.DataContractAttribute(Name="UserStatus", Namespace="http://schemas.datacontract.org/2004/07/UserService")]
+    public enum UserStatus : int {
+        
+        [System.Runtime.Serialization.EnumMemberAttribute()]
+        Active = 0,
+        
+        [System.Runtime.Serialization.EnumMemberAttribute()]
+        Inactive = 1,
+        
+        [System.Runtime.Serialization.EnumMemberAttribute()]
+        Pending = 2,
+    }
+    
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
-    [System.ServiceModel.ServiceContractAttribute(ConfigurationName="ServiceReference1.IUserService")]
+    [System.ServiceModel.ServiceContractAttribute(ConfigurationName="UserServiceProxy.IUserService", CallbackContract=typeof(UserClient.UserServiceProxy.IUserServiceCallback))]
     public interface IUserService {
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/GetAllUsers", ReplyAction="http://tempuri.org/IUserService/GetAllUsersResponse")]
-        UserClient.ServiceReference1.User[] GetAllUsers();
+        UserClient.UserServiceProxy.User[] GetAllUsers();
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/GetAllUsers", ReplyAction="http://tempuri.org/IUserService/GetAllUsersResponse")]
-        System.Threading.Tasks.Task<UserClient.ServiceReference1.User[]> GetAllUsersAsync();
+        System.Threading.Tasks.Task<UserClient.UserServiceProxy.User[]> GetAllUsersAsync();
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/GetUser", ReplyAction="http://tempuri.org/IUserService/GetUserResponse")]
-        UserClient.ServiceReference1.User GetUser(int id);
+        UserClient.UserServiceProxy.User GetUser(int id);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/GetUser", ReplyAction="http://tempuri.org/IUserService/GetUserResponse")]
-        System.Threading.Tasks.Task<UserClient.ServiceReference1.User> GetUserAsync(int id);
+        System.Threading.Tasks.Task<UserClient.UserServiceProxy.User> GetUserAsync(int id);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/AddUser", ReplyAction="http://tempuri.org/IUserService/AddUserResponse")]
-        void AddUser(UserClient.ServiceReference1.User user);
+        void AddUser(UserClient.UserServiceProxy.User user);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/AddUser", ReplyAction="http://tempuri.org/IUserService/AddUserResponse")]
-        System.Threading.Tasks.Task AddUserAsync(UserClient.ServiceReference1.User user);
+        System.Threading.Tasks.Task AddUserAsync(UserClient.UserServiceProxy.User user);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/UpdateUser", ReplyAction="http://tempuri.org/IUserService/UpdateUserResponse")]
-        void UpdateUser(UserClient.ServiceReference1.User user);
+        void UpdateUser(UserClient.UserServiceProxy.User user);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/UpdateUser", ReplyAction="http://tempuri.org/IUserService/UpdateUserResponse")]
-        System.Threading.Tasks.Task UpdateUserAsync(UserClient.ServiceReference1.User user);
+        System.Threading.Tasks.Task UpdateUserAsync(UserClient.UserServiceProxy.User user);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/DeleteUser", ReplyAction="http://tempuri.org/IUserService/DeleteUserResponse")]
         void DeleteUser(int id);
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/DeleteUser", ReplyAction="http://tempuri.org/IUserService/DeleteUserResponse")]
         System.Threading.Tasks.Task DeleteUserAsync(int id);
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/Subscribe", ReplyAction="http://tempuri.org/IUserService/SubscribeResponse")]
+        void Subscribe();
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/Subscribe", ReplyAction="http://tempuri.org/IUserService/SubscribeResponse")]
+        System.Threading.Tasks.Task SubscribeAsync();
     }
     
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
-    public interface IUserServiceChannel : UserClient.ServiceReference1.IUserService, System.ServiceModel.IClientChannel {
+    public interface IUserServiceCallback {
+        
+        [System.ServiceModel.OperationContractAttribute(IsOneWay=true, Action="http://tempuri.org/IUserService/OnUserStatusChanged")]
+        void OnUserStatusChanged(UserClient.UserServiceProxy.UserStatus status);
+    }
+    
+    [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
+    public interface IUserServiceChannel : UserClient.UserServiceProxy.IUserService, System.ServiceModel.IClientChannel {
     }
     
     [System.Diagnostics.DebuggerStepThroughAttribute()]
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
-    public partial class UserServiceClient : System.ServiceModel.ClientBase<UserClient.ServiceReference1.IUserService>, UserClient.ServiceReference1.IUserService {
+    public partial class UserServiceClient : System.ServiceModel.DuplexClientBase<UserClient.UserServiceProxy.IUserService>, UserClient.UserServiceProxy.IUserService {
         
-        public UserServiceClient() {
+        public UserServiceClient(System.ServiceModel.InstanceContext callbackInstance) : 
+                base(callbackInstance) {
         }
         
-        public UserServiceClient(string endpointConfigurationName) : 
-                base(endpointConfigurationName) {
+        public UserServiceClient(System.ServiceModel.InstanceContext callbackInstance, string endpointConfigurationName) : 
+                base(callbackInstance, endpointConfigurationName) {
         }
         
-        public UserServiceClient(string endpointConfigurationName, string remoteAddress) : 
-                base(endpointConfigurationName, remoteAddress) {
+        public UserServiceClient(System.ServiceModel.InstanceContext callbackInstance, string endpointConfigurationName, string remoteAddress) : 
+                base(callbackInstance, endpointConfigurationName, remoteAddress) {
         }
         
-        public UserServiceClient(string endpointConfigurationName, System.ServiceModel.EndpointAddress remoteAddress) : 
-                base(endpointConfigurationName, remoteAddress) {
+        public UserServiceClient(System.ServiceModel.InstanceContext callbackInstance, string endpointConfigurationName, System.ServiceModel.EndpointAddress remoteAddress) : 
+                base(callbackInstance, endpointConfigurationName, remoteAddress) {
         }
         
-        public UserServiceClient(System.ServiceModel.Channels.Binding binding, System.ServiceModel.EndpointAddress remoteAddress) : 
-                base(binding, remoteAddress) {
+        public UserServiceClient(System.ServiceModel.InstanceContext callbackInstance, System.ServiceModel.Channels.Binding binding, System.ServiceModel.EndpointAddress remoteAddress) : 
+                base(callbackInstance, binding, remoteAddress) {
         }
         
-        public UserClient.ServiceReference1.User[] GetAllUsers() {
+        public UserClient.UserServiceProxy.User[] GetAllUsers() {
             return base.Channel.GetAllUsers();
         }
         
-        public System.Threading.Tasks.Task<UserClient.ServiceReference1.User[]> GetAllUsersAsync() {
+        public System.Threading.Tasks.Task<UserClient.UserServiceProxy.User[]> GetAllUsersAsync() {
             return base.Channel.GetAllUsersAsync();
         }
         
-        public UserClient.ServiceReference1.User GetUser(int id) {
+        public UserClient.UserServiceProxy.User GetUser(int id) {
             return base.Channel.GetUser(id);
         }
         
-        public System.Threading.Tasks.Task<UserClient.ServiceReference1.User> GetUserAsync(int id) {
+        public System.Threading.Tasks.Task<UserClient.UserServiceProxy.User> GetUserAsync(int id) {
             return base.Channel.GetUserAsync(id);
         }
         
-        public void AddUser(UserClient.ServiceReference1.User user) {
+        public void AddUser(UserClient.UserServiceProxy.User user) {
             base.Channel.AddUser(user);
         }
         
-        public System.Threading.Tasks.Task AddUserAsync(UserClient.ServiceReference1.User user) {
+        public System.Threading.Tasks.Task AddUserAsync(UserClient.UserServiceProxy.User user) {
             return base.Channel.AddUserAsync(user);
         }
         
-        public void UpdateUser(UserClient.ServiceReference1.User user) {
+        public void UpdateUser(UserClient.UserServiceProxy.User user) {
             base.Channel.UpdateUser(user);
         }
         
-        public System.Threading.Tasks.Task UpdateUserAsync(UserClient.ServiceReference1.User user) {
+        public System.Threading.Tasks.Task UpdateUserAsync(UserClient.UserServiceProxy.User user) {
             return base.Channel.UpdateUserAsync(user);
         }
         
@@ -174,6 +202,14 @@ namespace UserClient.ServiceReference1 {
         
         public System.Threading.Tasks.Task DeleteUserAsync(int id) {
             return base.Channel.DeleteUserAsync(id);
+        }
+        
+        public void Subscribe() {
+            base.Channel.Subscribe();
+        }
+        
+        public System.Threading.Tasks.Task SubscribeAsync() {
+            return base.Channel.SubscribeAsync();
         }
     }
 }

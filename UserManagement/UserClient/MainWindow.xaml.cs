@@ -24,7 +24,7 @@ namespace UserClient
         public MainWindow()
         {
             InitializeComponent();
-            _viewModel = new UserViewModel();
+            _viewModel = new UserViewModel(this.Dispatcher);
             DataContext = _viewModel;
             Loaded += MainWindow_Loaded;
         }

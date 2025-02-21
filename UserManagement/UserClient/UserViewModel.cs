@@ -4,15 +4,29 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.ServiceModel;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
-using UserClient.ServiceReference1;
+using System.Windows.Threading;
+using UserClient.UserServiceProxy;
 
 namespace UserClient
 {
     public class UserViewModel : INotifyPropertyChanged
-    {
+    {        
+        public Dispatcher Dispatcher { get; }
+        public UserViewModel(Dispatcher dispatcher)
+        {
+            Dispatcher = dispatcher;
+            _userService = new UserServiceClient(new InstanceContext(new CallbackHandler(this)));
+            _timer = new Timer(RefreshUsersInterval, null, 0, 30000);
+            AddCommand = new RelayCommand(AddUser);
+            UpdateCommand = new RelayCommand(UpdateUser);
+            DeleteCommand = new RelayCommand(DeleteUser);
+        }
+
         public event PropertyChangedEventHandler PropertyChanged;
 
         private readonly IUserService _userService;
@@ -27,16 +41,35 @@ namespace UserClient
             }
         }
 
-        public ObservableCollection<User> Users { get; set; }
+        private string _logText;
 
-        public UserViewModel()
+        public string LogText
         {
-            _userService = new UserServiceClient();
-            AddCommand = new RelayCommand(AddUser);
-            UpdateCommand = new RelayCommand(UpdateUser);
-            DeleteCommand = new RelayCommand(DeleteUser);
+            get { return _logText; }
+            set 
+            { 
+                _logText = value;
+                OnPropertyChanged(nameof(LogText));
+            }
         }
 
+
+        public ObservableCollection<User> Users { get; set; }
+
+        private readonly Timer _timer;
+        private bool _isSubscribed;
+
+        private async void RefreshUsersInterval(object state)
+        {
+            try
+            {
+                await LoadUsersAsync();
+            }
+            catch (Exception ex)
+            {
+                LogText += ex.Message + "\n";
+            }
+        }
 
         public ICommand AddCommand   { get; }
         public ICommand UpdateCommand   { get; }
@@ -78,6 +111,11 @@ namespace UserClient
         /// <returns></returns>
         public async Task InitializeAsync()
         {
+            if (!_isSubscribed)
+            {
+                _isSubscribed = true;
+                await _userService.SubscribeAsync();
+            }
             await LoadUsersAsync();
         }
         private void AddUser()
@@ -127,4 +165,22 @@ namespace UserClient
         public bool CanExecute(object parameter) => true;
         public void Execute(object parameter) => _execute();
     }
+
+    public class CallbackHandler : IUserServiceCallback
+    {
+        private readonly UserViewModel _userViewModel;
+
+        public CallbackHandler(UserViewModel userViewModel)
+        {
+            _userViewModel = userViewModel;
+        }
+
+        public void OnUserStatusChanged(UserStatus status)
+        {
+            _userViewModel.Dispatcher.InvokeAsync(new Action(() =>
+            {
+                _userViewModel.LogText += $"new status: " + status.ToString() + "\n";
+            }));
+        }
+    }    
 }

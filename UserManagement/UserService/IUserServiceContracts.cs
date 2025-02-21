@@ -9,8 +9,21 @@ using UserService.Data;
 
 namespace UserService
 {
-    // NOTE: You can use the "Rename" command on the "Refactor" menu to change the interface name "IService1" in both code and config file together.
+    public enum UserStatus
+    {
+        Active,
+        Inactive,
+        Pending
+    }
+
     [ServiceContract]
+    public interface IUserCallback
+    {
+        [OperationContract(IsOneWay = true)]
+        void OnUserStatusChanged(UserStatus status);
+    }
+    
+    [ServiceContract(CallbackContract = typeof(IUserCallback))]
     public interface IUserService
     {
         [OperationContract]
@@ -27,5 +40,8 @@ namespace UserService
 
         [OperationContract]
         Task DeleteUserAsync(int id);
+
+        [OperationContract]
+        Task SubscribeAsync();
     }
 }
