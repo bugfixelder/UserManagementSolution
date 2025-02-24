@@ -44,6 +44,8 @@
     <Reference Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CallbackChannelProvider.cs" />
+    <Compile Include="CallbackManager.cs" />
     <Compile Include="Data\User.cs" />
     <Compile Include="UserServiceContracts.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

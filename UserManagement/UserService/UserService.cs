@@ -14,16 +14,7 @@ namespace UserService
     [CallbackBehavior(ConcurrencyMode = ConcurrencyMode.Reentrant, UseSynchronizationContext = false)]
     public class UserService : IUserService
     {
-        public static readonly ConcurrentDictionary<Guid, IUserCallback> _callbacks = new ConcurrentDictionary<Guid, IUserCallback>();
-        internal static ConcurrentDictionary<Guid, IUserCallback> Callbacks
-        {
-            get
-            {
-                return _callbacks;
-            }
-        }
-
-        private static readonly Timer _timer;
+        private readonly Timer _timer;
         private static List<User> _users = new List<User>()
         {
             new User{Id = 1, Name = "Nam"},
@@ -49,58 +40,27 @@ namespace UserService
             }
         }
 
-        static UserService()
+        private readonly ICallbackChannelProvider _callbackChannelProvider;
+        private readonly ICallbackManager _callbackManager;
+        public UserService() : this(new CallbackChannelProvider(), new CallbackManager())
         {
+            
+        }
+
+        public UserService(ICallbackChannelProvider callbackChannelProvider, ICallbackManager callbackManager)
+        {
+            _callbackChannelProvider = callbackChannelProvider;
+            _callbackManager = callbackManager;
             _timer = new Timer(TimerCallback, null, 0, 10000);
         }
 
-        private readonly IOperationContextWrapper _operationContextWrapper;
-
-        public UserService() : this(new OperationContextWrapper())
-        {
-
-        }
-
-        public UserService(IOperationContextWrapper operationContextWrapper)
-        {
-            _operationContextWrapper = operationContextWrapper;
-        }
-
-        private static async void TimerCallback(object state)
+        private async void TimerCallback(object state)
         {
             var randomStatus = (UserStatus)new Random().Next(0, 2);
             Console.WriteLine($"Callback invoking: new status = {randomStatus}");
 
-            foreach (var callback in _callbacks.Values)
-            {
-                if (callback != null)
-                {
-                    var communicationObject = callback as ICommunicationObject;
-                    if (communicationObject != null && communicationObject.State == CommunicationState.Opened)
-                    {
-                        try
-                        {
-                            await callback.OnUserStatusChanged(randomStatus);
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.WriteLine($"Error in callback: {ex.Message}");
-                            _callbacks.TryRemove(GetKeyForCallback(callback), out _);
-                        }
-                    }
-                    else
-                    {
-                        Console.WriteLine("Callback channel is not open or has faulted");
-                        _callbacks.TryRemove(GetKeyForCallback(callback), out _);
-                    }
-                }
-                else
-                {
-                    Console.WriteLine("Callback is null, no active connection");
-                    _callbacks.TryRemove(GetKeyForCallback(callback), out _);
-                }
-            }
-
+            var service = state as UserService;
+            await _callbackManager.NotifyAllCallbacksAsync(randomStatus).ConfigureAwait(false);
 
             Console.WriteLine($"TimerCallback END");
         }
@@ -153,31 +113,16 @@ namespace UserService
             }
         }
 
-        private static Guid GetKeyForCallback(IUserCallback callback)
-        {
-            return _callbacks.FirstOrDefault(kvp => kvp.Value == callback).Key;
-        }
         public async Task SubscribeAsync()
         {
-            var callback = _operationContextWrapper.InstanceContext.GetCallbackChannel<IUserCallback>();
-            _callbacks.TryAdd(Guid.NewGuid(), callback);
+            var callback = _callbackChannelProvider.GetCallbackChannel();
+            _callbackManager.SubscribeAsync(callback);
         }
 
         public async Task UnsubscribeAsync()
         {
-            var callback = _operationContextWrapper.InstanceContext.GetCallbackChannel<IUserCallback>();
-            var key = GetKeyForCallback(callback);
-            _callbacks.TryRemove(key, out _);
+            var callback = _callbackChannelProvider.GetCallbackChannel();
+            _callbackManager.UnsubscribeAsync(callback);
         }
-    }
-
-    public interface IOperationContextWrapper
-    {
-        OperationContext InstanceContext { get; }
-    }
-
-    public class OperationContextWrapper : IOperationContextWrapper
-    {
-        public OperationContext InstanceContext => OperationContext.Current;
     }
 }

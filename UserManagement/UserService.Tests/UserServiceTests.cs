@@ -15,12 +15,14 @@ namespace UserService.Tests
         private UserService _userService;
         private Mock<IUserCallback> _callbackMock;
         private Guid _callbackKey;
-        private Mock<IOperationContextWrapper> _operationContextMock;
+        private Mock<ICallbackChannelProvider> _channelProviderMock;
+        private Mock<ICallbackManager> _callbackManagerMock;
 
         public UserServiceTests()
         {
-            _operationContextMock = new Mock<IOperationContextWrapper>();
-            _userService = new UserService(_operationContextMock.Object);
+            _channelProviderMock = new Mock<ICallbackChannelProvider>();
+            _callbackManagerMock = new Mock<ICallbackManager>();
+            _userService = new UserService(_channelProviderMock.Object, _callbackManagerMock.Object);
             _callbackMock = new Mock<IUserCallback>();
             _callbackKey = Guid.NewGuid();
 
@@ -34,9 +36,6 @@ namespace UserService.Tests
                 UserService.Users.Clear();
                 UserService.Users.Add(new Data.User { Id = 1, Name = "Nam" });
                 UserService.Users.Add(new Data.User { Id = 2, Name = "Lan" });
-
-                UserService.Callbacks.Clear();
-                UserService.Callbacks.TryAdd(_callbackKey, _callbackMock.Object);
             }
         }
 
@@ -116,34 +115,25 @@ namespace UserService.Tests
         }
 
         [Fact]
-        public async Task SubscribeAsync_ShouldAddCallbackToDictionary()
+        public async Task SubscribeAsync_ShouldCallCallbackManagerWithCorrectCallback()
         {
-            // Arrange
-            var newCallbackMock = new Mock<IUserCallback>();
-            var newCallbackKey = Guid.NewGuid();
-            var mockInstanceContext = new Mock<OperationContext>(newCallbackMock.Object);
-            _operationContextMock.SetupGet(o => o.InstanceContext).Returns(mockInstanceContext.Object);
-
             // Act
             await _userService.SubscribeAsync();
 
             // Assert
-            Assert.True(UserService.Callbacks.ContainsKey(newCallbackKey)); // Kiểm tra callback được thêm
+            _callbackManagerMock.Verify(
+                m => m.SubscribeAsync(_callbackMock.Object).GetAwaiter(), Times.Once);
         }
 
         [Fact]
-        public async Task UnsubscribeAsync_ShouldRemoveCallbackFromDictionary()
+        public async Task UnsubscribeAsync_ShouldCallCallbackManagerWithCorrectCallback()
         {
-            // Arrange
-            var callbackKey = _callbackKey;
-            var mockInstanceContext = new Mock<OperationContext>(_callbackMock.Object);
-            _operationContextMock.SetupGet(o => o.InstanceContext).Returns(mockInstanceContext.Object);
-
             // Act
             await _userService.UnsubscribeAsync();
 
             // Assert
-            Assert.False(UserService.Callbacks.ContainsKey(callbackKey)); // Kiểm tra callback bị xóa
+            _callbackManagerMock.Verify(m => m.UnsubscribeAsync(_callbackMock.Object), Times.Once);
+
         }
     }
 }
