@@ -74,6 +74,16 @@
       <xs:sequence />
     </xs:complexType>
   </xs:element>
+  <xs:element name="Unsubscribe">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
+  <xs:element name="UnsubscribeResponse">
+    <xs:complexType>
+      <xs:sequence />
+    </xs:complexType>
+  </xs:element>
   <xs:element name="OnUserStatusChanged">
     <xs:complexType>
       <xs:sequence>

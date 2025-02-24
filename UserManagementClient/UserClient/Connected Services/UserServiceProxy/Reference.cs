@@ -127,6 +127,12 @@ namespace UserClient.UserServiceProxy {
         
         [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/Subscribe", ReplyAction="http://tempuri.org/IUserService/SubscribeResponse")]
         System.Threading.Tasks.Task SubscribeAsync();
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/Unsubscribe", ReplyAction="http://tempuri.org/IUserService/UnsubscribeResponse")]
+        void Unsubscribe();
+        
+        [System.ServiceModel.OperationContractAttribute(Action="http://tempuri.org/IUserService/Unsubscribe", ReplyAction="http://tempuri.org/IUserService/UnsubscribeResponse")]
+        System.Threading.Tasks.Task UnsubscribeAsync();
     }
     
     [System.CodeDom.Compiler.GeneratedCodeAttribute("System.ServiceModel", "4.0.0.0")]
@@ -210,6 +216,14 @@ namespace UserClient.UserServiceProxy {
         
         public System.Threading.Tasks.Task SubscribeAsync() {
             return base.Channel.SubscribeAsync();
+        }
+        
+        public void Unsubscribe() {
+            base.Channel.Unsubscribe();
+        }
+        
+        public System.Threading.Tasks.Task UnsubscribeAsync() {
+            return base.Channel.UnsubscribeAsync();
         }
     }
 }

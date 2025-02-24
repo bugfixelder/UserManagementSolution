@@ -27,6 +27,12 @@ namespace UserClient
             _viewModel = new UserViewModel(this.Dispatcher);
             DataContext = _viewModel;
             Loaded += MainWindow_Loaded;
+            Closing += MainWindow_Closing;
+        }
+
+        private async void MainWindow_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            await _viewModel.UnsubscribeAsync();
         }
 
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)

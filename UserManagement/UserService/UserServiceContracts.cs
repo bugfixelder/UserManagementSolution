@@ -43,5 +43,8 @@ namespace UserService
 
         [OperationContract]
         Task SubscribeAsync();
+
+        [OperationContract]
+        Task UnsubscribeAsync();
     }
 }

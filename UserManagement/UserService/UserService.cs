@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.ServiceModel;
@@ -9,19 +10,27 @@ using UserService.Data;
 namespace UserService
 {
     [ServiceBehavior(InstanceContextMode = InstanceContextMode.Single, ConcurrencyMode = ConcurrencyMode.Multiple)]
+    [CallbackBehavior(ConcurrencyMode = ConcurrencyMode.Reentrant, UseSynchronizationContext = false)]
     public class UserService : IUserService
     {
-        private static IUserCallback _callback;
-        private readonly Timer _timer;
+        private static readonly ConcurrentDictionary<Guid, IUserCallback> _callbacks = new ConcurrentDictionary<Guid, IUserCallback>();
+        private static readonly Timer _timer;
         private static List<User> _users = new List<User>()
         {
             new User{Id = 1, Name = "Nam"},
             new User{Id = 2, Name = "Lan" }
         };
 
-        public UserService()
+        private static readonly object _lock = new object();
+
+        static UserService()
         {
             _timer = new Timer(TimerCallback, null, 0, 10000);
+        }
+
+        public UserService()
+        {
+            
         }
 
         private static async void TimerCallback(object state)
@@ -29,31 +38,36 @@ namespace UserService
             var randomStatus = (UserStatus)new Random().Next(0, 2);
             Console.WriteLine($"Callback invoking: new status = {randomStatus}");
 
-            if (_callback != null)
+            foreach (var callback in _callbacks.Values)
             {
-                var communicationObject = _callback as ICommunicationObject;
-                if (communicationObject != null && communicationObject.State == CommunicationState.Opened)
+                if (callback != null)
                 {
-                    try
+                    var communicationObject = callback as ICommunicationObject;
+                    if (communicationObject != null && communicationObject.State == CommunicationState.Opened)
                     {
-                        await _callback.OnUserStatusChanged(randomStatus);
+                        try
+                        {
+                            await callback.OnUserStatusChanged(randomStatus);
+                        }
+                        catch (Exception ex)
+                        {
+                            Console.WriteLine($"Error in callback: {ex.Message}");
+                            _callbacks.TryRemove(GetKeyForCallback(callback), out _);
+                        }
                     }
-                    catch (Exception ex)
+                    else
                     {
-                        Console.WriteLine($"Error in callback: {ex.Message}");
-                        _callback = null; // Delete callback to prevent call next time
+                        Console.WriteLine("Callback channel is not open or has faulted");
+                        _callbacks.TryRemove(GetKeyForCallback(callback), out _);
                     }
                 }
                 else
                 {
-                    Console.WriteLine("Callback channel is not open or has faulted");
-                    _callback = null;
+                    Console.WriteLine("Callback is null, no active connection");
+                    _callbacks.TryRemove(GetKeyForCallback(callback), out _);
                 }
             }
-            else
-            {
-                Console.WriteLine("Callback is null, no active connection");
-            }
+            
 
             Console.WriteLine($"TimerCallback END");
         }
@@ -61,39 +75,66 @@ namespace UserService
         public async Task<List<User>> GetAllUsersAsync()
         {
             await Task.Delay(100); // Giả lập công việc bất đồng bộ
-            return _users;
+            lock (_lock)
+            {
+                return _users; 
+            }
         }
 
         public async Task<User> GetUserAsync(int id)
         {
             await Task.Delay(100);
-            return _users.FirstOrDefault(u => u.Id == id);
+            lock (_lock)
+            {
+                return _users.FirstOrDefault(u => u.Id == id); 
+            }
         }
 
         public async Task AddUserAsync(User user)
         {
             await Task.Delay(100);
-            user.Id = _users.Any() ? _users.Max(u => u.Id) + 1 : 1;
-            _users.Add(user);
+            lock (_lock)
+            {
+                user.Id = _users.Any() ? _users.Max(u => u.Id) + 1 : 1;
+                _users.Add(user); 
+            }
         }
 
         public async Task UpdateUserAsync(User user)
         {
             await Task.Delay(100);
-            var existing = _users.FirstOrDefault(u => u.Id == user.Id);
-            if (existing != null) existing.Name = user.Name;
+            lock (_lock)
+            {
+                var existing = _users.FirstOrDefault(u => u.Id == user.Id);
+                if (existing != null) existing.Name = user.Name; 
+            }
         }
 
         public async Task DeleteUserAsync(int id)
         {
             await Task.Delay(100);
-            var user = _users.FirstOrDefault(u => u.Id == id);
-            if (user != null) _users.Remove(user);
+            lock (_lock)
+            {
+                var user = _users.FirstOrDefault(u => u.Id == id);
+                if (user != null) _users.Remove(user); 
+            }
         }
 
+        private static Guid GetKeyForCallback(IUserCallback callback)
+        {
+            return _callbacks.FirstOrDefault(kvp => kvp.Value == callback).Key;
+        }
         public async Task SubscribeAsync()
         {
-            _callback = OperationContext.Current.GetCallbackChannel<IUserCallback>();
+            var callback = OperationContext.Current.GetCallbackChannel<IUserCallback>();
+            _callbacks.TryAdd(Guid.NewGuid(), callback);
+        }
+
+        public async Task UnsubscribeAsync()
+        {
+            var callback = OperationContext.Current.GetCallbackChannel<IUserCallback>();
+            var key = GetKeyForCallback(callback);
+            _callbacks.TryRemove(key, out _);            
         }
     }
 }

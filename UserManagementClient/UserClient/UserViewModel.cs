@@ -118,6 +118,15 @@ namespace UserClient
             }
             await LoadUsersAsync();
         }
+        public async Task UnsubscribeAsync()
+        {
+            if (_isSubscribed)
+            {
+                await _userService.UnsubscribeAsync();
+                _isSubscribed = false;
+            }
+        }
+
         private void AddUser()
         {
             var newUser = new User() { Name = "New User"};
