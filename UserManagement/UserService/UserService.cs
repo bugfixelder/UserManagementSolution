@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.ServiceModel;
 using System.Threading;
 using System.Threading.Tasks;
@@ -13,7 +14,15 @@ namespace UserService
     [CallbackBehavior(ConcurrencyMode = ConcurrencyMode.Reentrant, UseSynchronizationContext = false)]
     public class UserService : IUserService
     {
-        private static readonly ConcurrentDictionary<Guid, IUserCallback> _callbacks = new ConcurrentDictionary<Guid, IUserCallback>();
+        public static readonly ConcurrentDictionary<Guid, IUserCallback> _callbacks = new ConcurrentDictionary<Guid, IUserCallback>();
+        internal static ConcurrentDictionary<Guid, IUserCallback> Callbacks
+        {
+            get
+            {
+                return _callbacks;
+            }
+        }
+
         private static readonly Timer _timer;
         private static List<User> _users = new List<User>()
         {
@@ -21,16 +30,40 @@ namespace UserService
             new User{Id = 2, Name = "Lan" }
         };
 
+        internal static List<User> Users
+        {
+            get
+            {
+                return _users;
+            }
+        }
+
         private static readonly object _lock = new object();
+
+        internal static object Lock
+        {
+
+            get
+            {
+                return _lock;
+            }
+        }
 
         static UserService()
         {
             _timer = new Timer(TimerCallback, null, 0, 10000);
         }
 
-        public UserService()
+        private readonly IOperationContextWrapper _operationContextWrapper;
+
+        public UserService() : this(new OperationContextWrapper())
         {
-            
+
+        }
+
+        public UserService(IOperationContextWrapper operationContextWrapper)
+        {
+            _operationContextWrapper = operationContextWrapper;
         }
 
         private static async void TimerCallback(object state)
@@ -67,7 +100,7 @@ namespace UserService
                     _callbacks.TryRemove(GetKeyForCallback(callback), out _);
                 }
             }
-            
+
 
             Console.WriteLine($"TimerCallback END");
         }
@@ -77,7 +110,7 @@ namespace UserService
             await Task.Delay(100); // Giả lập công việc bất đồng bộ
             lock (_lock)
             {
-                return _users; 
+                return _users;
             }
         }
 
@@ -86,7 +119,7 @@ namespace UserService
             await Task.Delay(100);
             lock (_lock)
             {
-                return _users.FirstOrDefault(u => u.Id == id); 
+                return _users.FirstOrDefault(u => u.Id == id);
             }
         }
 
@@ -96,7 +129,7 @@ namespace UserService
             lock (_lock)
             {
                 user.Id = _users.Any() ? _users.Max(u => u.Id) + 1 : 1;
-                _users.Add(user); 
+                _users.Add(user);
             }
         }
 
@@ -106,7 +139,7 @@ namespace UserService
             lock (_lock)
             {
                 var existing = _users.FirstOrDefault(u => u.Id == user.Id);
-                if (existing != null) existing.Name = user.Name; 
+                if (existing != null) existing.Name = user.Name;
             }
         }
 
@@ -116,7 +149,7 @@ namespace UserService
             lock (_lock)
             {
                 var user = _users.FirstOrDefault(u => u.Id == id);
-                if (user != null) _users.Remove(user); 
+                if (user != null) _users.Remove(user);
             }
         }
 
@@ -126,15 +159,25 @@ namespace UserService
         }
         public async Task SubscribeAsync()
         {
-            var callback = OperationContext.Current.GetCallbackChannel<IUserCallback>();
+            var callback = _operationContextWrapper.InstanceContext.GetCallbackChannel<IUserCallback>();
             _callbacks.TryAdd(Guid.NewGuid(), callback);
         }
 
         public async Task UnsubscribeAsync()
         {
-            var callback = OperationContext.Current.GetCallbackChannel<IUserCallback>();
+            var callback = _operationContextWrapper.InstanceContext.GetCallbackChannel<IUserCallback>();
             var key = GetKeyForCallback(callback);
-            _callbacks.TryRemove(key, out _);            
+            _callbacks.TryRemove(key, out _);
         }
+    }
+
+    public interface IOperationContextWrapper
+    {
+        OperationContext InstanceContext { get; }
+    }
+
+    public class OperationContextWrapper : IOperationContextWrapper
+    {
+        public OperationContext InstanceContext => OperationContext.Current;
     }
 }
