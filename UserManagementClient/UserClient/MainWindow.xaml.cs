@@ -12,6 +12,7 @@ using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
+using UserClient.Infrastructures;
 
 namespace UserClient
 {
@@ -24,7 +25,7 @@ namespace UserClient
         public MainWindow()
         {
             InitializeComponent();
-            _viewModel = new UserViewModel(this.Dispatcher);
+            _viewModel = new UserViewModel(new DispatcherWrapper(this.Dispatcher));
             DataContext = _viewModel;
             Loaded += MainWindow_Loaded;
             Closing += MainWindow_Closing;

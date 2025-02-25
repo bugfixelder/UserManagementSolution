@@ -10,21 +10,24 @@ using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using System.Windows.Threading;
+using UserClient.Infrastructures;
 using UserClient.UserServiceProxy;
 
 namespace UserClient
 {
     public class UserViewModel : INotifyPropertyChanged
-    {        
-        public Dispatcher Dispatcher { get; }
-        public UserViewModel(Dispatcher dispatcher)
-        {
-            Dispatcher = dispatcher;
+    {
+        private readonly IDispatcherwWrapper _dispatcherwWrapper;
+        public IDispatcherwWrapper Dispatcher  => _dispatcherwWrapper;
+
+        public UserViewModel(IDispatcherwWrapper dispatcherwWrapper)
+        {            
             _userService = new UserServiceClient(new InstanceContext(new CallbackHandler(this)));
             _timer = new Timer(RefreshUsersInterval, null, 0, 30000);
             AddCommand = new RelayCommand(AddUser);
             UpdateCommand = new RelayCommand(UpdateUser);
             DeleteCommand = new RelayCommand(DeleteUser);
+            _dispatcherwWrapper = dispatcherwWrapper;
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
@@ -58,6 +61,15 @@ namespace UserClient
 
         private readonly Timer _timer;
         private bool _isSubscribed;
+
+        internal bool IsSubscribedForTestOnly
+        {
+            get => _isSubscribed; 
+            set
+            {
+                _isSubscribed = value;
+            }
+        }
 
         private async void RefreshUsersInterval(object state)
         {
