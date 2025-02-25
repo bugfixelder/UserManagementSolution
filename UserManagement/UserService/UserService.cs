@@ -116,13 +116,13 @@ namespace UserService
         public async Task SubscribeAsync()
         {
             var callback = _callbackChannelProvider.GetCallbackChannel();
-            _callbackManager.SubscribeAsync(callback);
+            await _callbackManager.SubscribeAsync(callback);
         }
 
         public async Task UnsubscribeAsync()
         {
             var callback = _callbackChannelProvider.GetCallbackChannel();
-            _callbackManager.UnsubscribeAsync(callback);
+            await _callbackManager.UnsubscribeAsync(callback);
         }
     }
 }

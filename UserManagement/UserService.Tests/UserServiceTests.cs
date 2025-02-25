@@ -117,22 +117,32 @@ namespace UserService.Tests
         [Fact]
         public async Task SubscribeAsync_ShouldCallCallbackManagerWithCorrectCallback()
         {
+            // Arrange
+            _callbackMock = new Mock<IUserCallback>(); // Giả định IUserCallback là interface callback
+            _channelProviderMock.Setup(p => p.GetCallbackChannel()).Returns(_callbackMock.Object);
+            _callbackManagerMock.Setup(m => m.SubscribeAsync(It.IsAny<IUserCallback>())).Returns(Task.CompletedTask);
+
             // Act
             await _userService.SubscribeAsync();
 
             // Assert
             _callbackManagerMock.Verify(
-                m => m.SubscribeAsync(_callbackMock.Object).GetAwaiter(), Times.Once);
+                m => m.SubscribeAsync(It.Is<IUserCallback>(c => c == _callbackMock.Object)), Times.Once);
         }
 
         [Fact]
         public async Task UnsubscribeAsync_ShouldCallCallbackManagerWithCorrectCallback()
         {
+            // Arrange
+            _callbackMock = new Mock<IUserCallback>();
+            _channelProviderMock.Setup(p => p.GetCallbackChannel()).Returns(_callbackMock.Object);
+            _callbackManagerMock.Setup(m => m.UnsubscribeAsync(It.IsAny<IUserCallback>())).Returns(Task.CompletedTask);
+
             // Act
             await _userService.UnsubscribeAsync();
 
             // Assert
-            _callbackManagerMock.Verify(m => m.UnsubscribeAsync(_callbackMock.Object), Times.Once);
+            _callbackManagerMock.Verify(m => m.UnsubscribeAsync(It.Is<IUserCallback>(c => c == _callbackMock.Object)), Times.Once);
 
         }
     }
