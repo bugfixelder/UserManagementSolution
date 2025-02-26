@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.ServiceModel;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
@@ -13,6 +14,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Navigation;
 using System.Windows.Shapes;
 using UserClient.Infrastructures;
+using UserClient.UserServiceProxy;
 
 namespace UserClient
 {
@@ -22,10 +24,10 @@ namespace UserClient
     public partial class MainWindow : Window
     {
         private readonly UserViewModel _viewModel;
-        public MainWindow()
+        public MainWindow(UserViewModel viewModel)
         {
             InitializeComponent();
-            _viewModel = new UserViewModel(new DispatcherWrapper(this.Dispatcher));
+            _viewModel = viewModel;
             DataContext = _viewModel;
             Loaded += MainWindow_Loaded;
             Closing += MainWindow_Closing;

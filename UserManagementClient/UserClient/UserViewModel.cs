@@ -17,22 +17,27 @@ namespace UserClient
 {
     public class UserViewModel : INotifyPropertyChanged
     {
-        private readonly IDispatcherwWrapper _dispatcherwWrapper;
-        public IDispatcherwWrapper Dispatcher  => _dispatcherwWrapper;
+        private readonly ITimerWrapper _timerWrapper;
+        private readonly IUserServiceProxy _userServiceProxy;
+        public IDispatcherwWrapper Dispatcher { get; }
 
-        public UserViewModel(IDispatcherwWrapper dispatcherwWrapper)
-        {            
-            _userService = new UserServiceClient(new InstanceContext(new CallbackHandler(this)));
-            _timer = new Timer(RefreshUsersInterval, null, 0, 30000);
+        public UserViewModel(ITimerWrapper timerWrapper, IUserServiceProxy userService, IDispatcherwWrapper dispatcherWrapper)
+        {
+            _userServiceProxy = userService ?? throw new ArgumentNullException(nameof(userService));
+            Dispatcher = dispatcherWrapper;
+
+            _userServiceProxy.UserStatusChanged -= UserServiceProxyOnUserStatusChanged;
+            _userServiceProxy.UserStatusChanged += UserServiceProxyOnUserStatusChanged;
+
             AddCommand = new RelayCommand(AddUser);
             UpdateCommand = new RelayCommand(UpdateUser);
             DeleteCommand = new RelayCommand(DeleteUser);
-            _dispatcherwWrapper = dispatcherwWrapper;
+            _timerWrapper = timerWrapper ?? throw new ArgumentNullException(nameof(timerWrapper));
+            _timerWrapper.Start(RefreshUsersInterval, null, 0, 30000);
         }
 
         public event PropertyChangedEventHandler PropertyChanged;
 
-        private readonly IUserService _userService;
         private User _selectedUser;
         public User SelectedUser 
         { 
@@ -48,7 +53,7 @@ namespace UserClient
 
         public string LogText
         {
-            get { return _logText; }
+            get => _logText;
             set 
             { 
                 _logText = value;
@@ -59,16 +64,20 @@ namespace UserClient
 
         public ObservableCollection<User> Users { get; set; }
 
-        private readonly Timer _timer;
         private bool _isSubscribed;
 
         internal bool IsSubscribedForTestOnly
         {
             get => _isSubscribed; 
-            set
+            set => _isSubscribed = value;
+        }
+
+        private void UserServiceProxyOnUserStatusChanged(object sender, UserStatus e)
+        {
+            Dispatcher.InvokeAsync(() =>
             {
-                _isSubscribed = value;
-            }
+                LogText += $"new status: {e}\n";
+            });
         }
 
         private async void RefreshUsersInterval(object state)
@@ -126,7 +135,7 @@ namespace UserClient
             if (!_isSubscribed)
             {
                 _isSubscribed = true;
-                await _userService.SubscribeAsync();
+                await _userServiceProxy.SubscribeAsync();
             }
             await LoadUsersAsync();
         }
@@ -134,21 +143,23 @@ namespace UserClient
         {
             if (_isSubscribed)
             {
-                await _userService.UnsubscribeAsync();
+                await _userServiceProxy.UnsubscribeAsync();
                 _isSubscribed = false;
+                _timerWrapper.Dispose();
+                _userServiceProxy.UserStatusChanged -= UserServiceProxyOnUserStatusChanged;
             }
         }
 
         private void AddUser()
         {
             var newUser = new User() { Name = "New User"};
-            _userService.AddUser(newUser);
+            _userServiceProxy.AddUser(newUser);
             Users.Add(newUser);
         }
 
         private async Task LoadUsersAsync()
         {
-            var users = await _userService.GetAllUsersAsync();
+            var users = await _userServiceProxy.GetAllUsersAsync();
             Users = new ObservableCollection<User>(users);
             OnPropertyChanged(nameof(Users));
         }
@@ -157,8 +168,8 @@ namespace UserClient
         {
             if (SelectedUser != null)
             {
-                await _userService.UpdateUserAsync(SelectedUser);
-                Users = new ObservableCollection<User>(await _userService.GetAllUsersAsync());
+                await _userServiceProxy.UpdateUserAsync(SelectedUser);
+                Users = new ObservableCollection<User>(await _userServiceProxy.GetAllUsersAsync());
                 OnPropertyChanged(nameof(Users));
             }
         }
@@ -167,7 +178,7 @@ namespace UserClient
         {
             if (SelectedUser != null)
             {
-                await _userService.DeleteUserAsync(SelectedUser.Id);
+                await _userServiceProxy.DeleteUserAsync(SelectedUser.Id);
                 Users.Remove(SelectedUser);
             }
         }
@@ -186,22 +197,5 @@ namespace UserClient
         public bool CanExecute(object parameter) => true;
         public void Execute(object parameter) => _execute();
     }
-
-    public class CallbackHandler : IUserServiceCallback
-    {
-        private readonly UserViewModel _userViewModel;
-
-        public CallbackHandler(UserViewModel userViewModel)
-        {
-            _userViewModel = userViewModel;
-        }
-
-        public async void OnUserStatusChanged(UserStatus status)
-        {
-            await _userViewModel.Dispatcher.InvokeAsync(new Action(() =>
-            {
-                _userViewModel.LogText += $"new status: " + status.ToString() + "\n";
-            }));
-        }
-    }    
+    
 }

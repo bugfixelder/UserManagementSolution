@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace UserClient.Infrastructures
@@ -10,23 +11,35 @@ namespace UserClient.Infrastructures
     {
         void Dispose();
         void Change(int dueTime, int period);
-        void Start(Action<object> callback, object state, int dueTime, int period);
+        void Start(TimerCallback callback, object state, int dueTime, int period);
     }
     internal class TimerWrapper : ITimerWrapper
     {
-        public void Change(int dueTime, int period)
+        private Timer _timer;
+
+        public TimerWrapper()
+        {
+            _timer = new Timer(TimerCallback, null, Timeout.Infinite, Timeout.Infinite);
+        }
+
+        private void TimerCallback(object state)
         {
             throw new NotImplementedException();
+        }
+
+        public void Change(int dueTime, int period)
+        {
+            _timer?.Change(dueTime, period);
         }
 
         public void Dispose()
         {
-            throw new NotImplementedException();
+            _timer?.Dispose();
         }
 
-        public void Start(Action<object> callback, object state, int dueTime, int period)
+        public void Start(TimerCallback callback, object state, int dueTime, int period)
         {
-            throw new NotImplementedException();
+            _timer = new Timer(callback, state, dueTime, period);
         }
     }
 }

@@ -14,33 +14,28 @@ namespace UserClient.Tests
 {
     public class UserViewModelTests
     {
-        private UserViewModel _viewModel;
-        private Mock<IUserService> _userServiceMock;
-        private Mock<IDispatcherwWrapper> _dispatcherMock;
-        private Mock<Timer> _timerMock;
+        private readonly UserViewModel _viewModel;
+        private readonly Mock<IUserServiceProxy> _userServiceProxyMock;
+        private readonly Mock<IDispatcherwWrapper> _dispatcherMock;
         private Mock<IUserServiceCallback> _callbackMock;
+        private readonly Mock<ITimerWrapper> _timerWrapper;
 
         public UserViewModelTests()
         {
             // Mock dependencies
-            _userServiceMock = new Mock<IUserService>();
+            _userServiceProxyMock = new Mock<IUserServiceProxy>();
             _dispatcherMock = new Mock<IDispatcherwWrapper>();
-            _timerMock = new Mock<Timer>(MockBehavior.Loose);
             _callbackMock = new Mock<IUserServiceCallback>();
-
-            // Khởi tạo UserViewModel với mocks
-            _viewModel = new UserViewModel(_dispatcherMock.Object);
+            _timerWrapper = new Mock<ITimerWrapper>();
 
             // Setup timer để không thực sự chạy (mock behavior)
-            _timerMock.Setup(t => t.Dispose()).Verifiable();
+            _timerWrapper.Setup(t => t.Dispose()).Verifiable();
+            _timerWrapper.Setup(t => t.Start(It.IsAny<TimerCallback>(), 
+                    It.IsAny<object>(), It.IsAny<int>(), It.IsAny<int>()))
+                .Callback<TimerCallback, object, int, int>((callback, state, dueTime, period) => callback(state));
 
-            // Inject timer vào view model (cần refactor UserViewModel để hỗ trợ injection)
-            typeof(UserViewModel).GetField("_timer", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
-                ?.SetValue(_viewModel, _timerMock.Object);
-
-            // Setup UserService trong view model (cần refactor để inject IUserService)
-            typeof(UserViewModel).GetField("_userService", System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.NonPublic)
-                ?.SetValue(_viewModel, _userServiceMock.Object);
+            // Khởi tạo UserViewModel với mocks
+            _viewModel = new UserViewModel(_timerWrapper.Object, _userServiceProxyMock.Object, _dispatcherMock.Object);
         }
 
         [Fact]
@@ -54,22 +49,42 @@ namespace UserClient.Tests
 
             };
 
-            _userServiceMock.Setup(s => s.SubscribeAsync()).Returns(Task.CompletedTask);
-            _userServiceMock.Setup(s => s.GetAllUsersAsync()).Returns(Task.FromResult(users.ToArray()));
-            _dispatcherMock.Setup(d => d.InvokeAsync(It.IsAny<Action>(), It.IsAny<DispatcherPriority>()))
-                .Callback<Action, DispatcherPriority>((action, priority) => action());
-
+            _userServiceProxyMock.Setup(s => s.SubscribeAsync()).Returns(Task.CompletedTask);
+            _userServiceProxyMock.Setup(s => s.GetAllUsersAsync()).Returns(Task.FromResult(users.ToArray()));
+            
             // Act
             await _viewModel.InitializeAsync();
 
             // Assert
-            _userServiceMock.Verify(s => s.SubscribeAsync(), Times.Once());
-            _userServiceMock.Verify(s => s.GetAllUsersAsync(), Times.Once());
+            _userServiceProxyMock.Verify(s => s.SubscribeAsync(), Times.Once());
+            _userServiceProxyMock.Verify(s => s.GetAllUsersAsync(), Times.Once());
             Assert.NotNull(_viewModel.Users);
             Assert.Equal(2, _viewModel.Users.Count);
             Assert.Contains(_viewModel.Users, x =>x.Id == 1 && x.Name == "Nam");
             Assert.Contains(_viewModel.Users, x =>x.Id == 2 && x.Name == "Lan");
             Assert.True(_viewModel.IsSubscribedForTestOnly);
          }
+
+        [Fact]
+        public async Task UserServiceProxyOnUserStatusChanged_ShouldUpdateLogText()
+        {
+            // Arrange
+            _userServiceProxyMock.SetupAdd(s => 
+                s.UserStatusChanged += It.IsAny<EventHandler<UserStatus>>())
+                .Callback<EventHandler<UserStatus>>(handler => handler(this, UserStatus.Active))
+                .Verifiable();
+
+            _dispatcherMock.Setup(d => 
+                d.InvokeAsync(It.IsAny<Action>(), It.IsAny<DispatcherPriority>()))
+                .Callback<Action, DispatcherPriority>((action, priority) => action());
+
+            // Act
+            _userServiceProxyMock.Raise(p => p.UserStatusChanged += null, this, UserStatus.Active);
+
+            // Assert
+            Assert.Contains("new status: Active", _viewModel.LogText);
+            _dispatcherMock.Verify(d =>
+                d.InvokeAsync(It.Is<Action>(a => a != null), It.IsAny<DispatcherPriority>()), Times.Once);
+        }
     }
 }
