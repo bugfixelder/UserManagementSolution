@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel;
 using System.Configuration;
 using System.Data;
 using System.Linq;
@@ -10,6 +11,7 @@ using System.Windows.Threading;
 using SimpleInjector;
 using UserClient.Infrastructures;
 using UserClient.UserServiceProxy;
+using Container = SimpleInjector.Container;
 
 namespace UserClient
 {
@@ -36,7 +38,7 @@ namespace UserClient
                 _container.GetInstance<IUserServiceProxy>(),
                 _container.GetInstance<IDispatcherwWrapper>()
             ));
-            _container.Register<MainWindow>();
+            _container.Register<MainWindow>(() => new MainWindow(_container.GetInstance<UserViewModel>()));
         }
 
         protected override void OnStartup(StartupEventArgs e)

@@ -57,7 +57,7 @@ namespace UserClient.Tests
 
             // Assert
             _userServiceProxyMock.Verify(s => s.SubscribeAsync(), Times.Once());
-            _userServiceProxyMock.Verify(s => s.GetAllUsersAsync(), Times.Once());
+            _userServiceProxyMock.Verify(s => s.GetAllUsersAsync(), Times.Exactly(2)); // once in timer callback
             Assert.NotNull(_viewModel.Users);
             Assert.Equal(2, _viewModel.Users.Count);
             Assert.Contains(_viewModel.Users, x =>x.Id == 1 && x.Name == "Nam");
